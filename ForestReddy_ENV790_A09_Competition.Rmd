@@ -1,0 +1,84 @@
+---
+title: "Project Report"
+author: "Aasha Reddy"
+date: "3/20/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r, warning=FALSE}
+# load packages
+library(lubridate)
+library(ggplot2)
+library(forecast)  
+library(Kendall)
+library(tseries)
+library(outliers)
+library(tidyverse)
+library(cowplot)
+```
+
+# Introduction
+
+In this assignment, we participate in a Kaggle competition 
+
+# Data Cleaning
+
+
+```{r}
+# load data
+demand <- read.csv("data/load.csv") %>%
+  janitor::clean_names() %>%
+  rename(meter_id = i_meter_id)
+
+humidity <- read.csv("data/relative_humidity.csv", skipNul = T) %>%
+  janitor::clean_names()
+
+temp <- read.csv("data/temperature.csv") %>%
+  janitor::clean_names()
+```
+
+First we examine the demand dataset. We note that all rows after 2191 are NA, so we remove those rows. We also note that all meter_id's are 1, so we can remove that column from the dataset. We then sum across all the hour columns to transform hourly data into total daily demand. We also transform the date variable into a datetime object using lubridate. In the final dataset, there are no NA values. In examining the humidity and temperature datasets, we also note that there is no missing data. We transform this data from hourly to daily as well to match the demand dataset. 
+
+```{r}
+# examine demand dataset
+summary(demand)
+
+# Demand dataset - transform hourly data into daily data
+demand <- demand[1:2191,]
+
+demand <- demand %>%
+  select(-meter_id) %>%
+  group_by(date) %>%
+  summarize(demand = sum(h1:h24, na.rm = T)) %>%
+  mutate(date = mdy(date))
+```
+
+```{r}
+# examine humidity dataset
+summary(humidity)
+
+# clean humidity dataset - transform from houly to daily
+x <- humidity %>%
+  mutate(date = dmy(date)) 
+```
+
+
+```{r}
+# examine temperature dataset
+summary(temp)
+
+# clean temperature dataset - transform from hourly to daily
+x <- temp %>%
+  mutate(date = dmy(date))
+```
+
+# Methods and Modeling
+
+
+
+# Results
+
