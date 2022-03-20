@@ -50,11 +50,15 @@ summary(demand)
 # Demand dataset - transform hourly data into daily data
 demand <- demand[1:2191,]
 
-demand <- demand %>%
-  select(-meter_id) %>%
-  group_by(date) %>%
-  summarize(demand = sum(h1:h24, na.rm = T)) %>%
+x <- demand %>%
+  select(date) %>%
   mutate(date = mdy(date))
+
+
+demand <- demand %>%
+  select(-meter_id, -date) %>%
+  summarize(demand = rowSums(.)) %>%
+  cbind(x)
 ```
 
 ```{r}
@@ -63,7 +67,16 @@ summary(humidity)
 
 # clean humidity dataset - transform from houly to daily
 x <- humidity %>%
-  mutate(date = dmy(date)) 
+  mutate(date = dmy(date)) %>%
+  select(date, hr)
+  
+humidity <- humidity %>%
+  select(3:30) %>%
+  summarize(humidity = rowSums(.)) %>%
+  cbind(x) %>%
+  group_by(date) %>%
+  summarize(humidity = sum(humidity))
+  
 ```
 
 
@@ -73,8 +86,24 @@ summary(temp)
 
 # clean temperature dataset - transform from hourly to daily
 x <- temp %>%
-  mutate(date = dmy(date))
+  mutate(date = dmy(date)) %>%
+  select(date, hr)
+  
+temp <- temp %>%
+  select(3:30) %>%
+  summarize(temp = rowSums(.)) %>%
+  cbind(x) %>%
+  group_by(date) %>%
+  summarize(temp = sum(temp))
 ```
+
+```{r}
+# merge all three datasets
+df <- left_join(demand, temp, by = "date") %>%
+  left_join(., humidity, by = "date") %>%
+  select(date, demand, humidity, temp)
+```
+
 
 # Methods and Modeling
 
