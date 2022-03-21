@@ -187,6 +187,7 @@ We also transform the demand dataframe into a time series object here.
 # transform demand into ts object for both training and test set
 demand_train_ts <- ts(demand_train, start = 2001, frequency = 365)
 demand_test_ts <- ts(demand_test, start = 2010, frequency = 365)
+demand_ts <- ts(demand, start = 2005, frequency = 365)
 ```
 
 
@@ -204,18 +205,24 @@ plot(decompose_demand)
 deseasonal_demand <- seasadj(decompose_demand)  
 ```
 
+Confused on the below part - not sure how to get forecast. 
 ```{r}
 # observed data
 observed <- demand_train[, "demand"] %>%
   pull()
 
 # fit seasonal naive model - I'm not sure what h should be?
-SNAIVE_seas <- snaive(demand_train_ts[,"demand"], h=365)
+SNAIVE_seas <- snaive(demand_train_ts[,"demand"], h=31)
 checkresiduals(SNAIVE_seas)
 
-# check accuracy
+# forecast for Jan 2010
 SNAIVE_scores <- accuracy(SNAIVE_seas$mean,observed)
 plot(SNAIVE_seas)
+
+# now refit model using all data (2005 - 2010) - use demand_ts
+
+
+# forecast for Jan 2011 (this is what we submit to kaggle)
 ```
 
 # Results
