@@ -41,7 +41,7 @@ temp <- read.csv("data/temperature.csv") %>%
   janitor::clean_names()
 ```
 
-First we examine the demand dataset. We note that all rows after 2191 are NA, so we remove those rows. We also note that all meter_id's are 1, so we can remove that column from the dataset. We then sum across all the hour columns to transform hourly data into total daily demand. We also transform the date variable into a datetime object using lubridate. In the final dataset, there are no NA values. In examining the humidity and temperature datasets, we also note that there is no missing data. We transform this data from hourly to daily as well to match the demand dataset. 
+First we examine the demand dataset. We note that all rows after 2191 are NA, so we remove those rows. We also note that all meter_id's are 1, so we can remove that column from the dataset. We then average across all the hour columns to transform hourly data into total daily demand. We also transform the date variable into a datetime object using lubridate. In the final dataset, there are no NA values. In examining the humidity and temperature datasets, we also note that there is no missing data. We transform this data from hourly to daily as well to match the demand dataset. 
 
 ```{r}
 # examine demand dataset
@@ -57,7 +57,7 @@ x <- demand %>%
 
 demand <- demand %>%
   select(-meter_id, -date) %>%
-  summarize(demand = rowSums(.)) %>%
+  summarize(demand = rowMeans(.)) %>%
   cbind(x)
 ```
 
@@ -66,16 +66,40 @@ demand <- demand %>%
 summary(humidity)
 
 # clean humidity dataset - transform from houly to daily
-x <- humidity %>%
-  mutate(date = dmy(date)) %>%
-  select(date, hr)
-  
 humidity <- humidity %>%
-  select(3:30) %>%
-  summarize(humidity = rowSums(.)) %>%
-  cbind(x) %>%
+  mutate(date = dmy(date)) %>%
   group_by(date) %>%
-  summarize(humidity = sum(humidity))
+  summarize(rh_ws1 = mean(rh_ws1), 
+            rh_ws2 = mean(rh_ws2), 
+            rh_ws3 = mean(rh_ws3),
+            rh_ws4 = mean(rh_ws4),
+            rh_ws5 = mean(rh_ws5),
+            rh_ws6 = mean(rh_ws6),
+            rh_ws7 = mean(rh_ws7),
+            rh_ws8 = mean(rh_ws8),
+            rh_ws9 = mean(rh_ws9),
+            rh_ws10 = mean(rh_ws10),
+            rh_ws11 = mean(rh_ws11),
+            rh_ws12 = mean(rh_ws12),
+            rh_ws13 = mean(rh_ws13),
+            rh_ws14 = mean(rh_ws14),
+            rh_ws15 = mean(rh_ws15),
+            rh_ws16 = mean(rh_ws16),
+            rh_ws17 = mean(rh_ws17),
+            rh_ws18 = mean(rh_ws18),
+            rh_ws19 = mean(rh_ws19),
+            rh_ws20 = mean(rh_ws20),
+            rh_ws21 = mean(rh_ws21),
+            rh_ws22 = mean(rh_ws22),
+            rh_ws23 = mean(rh_ws23),
+            rh_ws24 = mean(rh_ws24),
+            rh_ws25 = mean(rh_ws25),
+            rh_ws26 = mean(rh_ws26),
+            rh_ws27 = mean(rh_ws27),
+            rh_ws28 = mean(rh_ws28)
+            )
+  
+
   
 ```
 
@@ -85,23 +109,45 @@ humidity <- humidity %>%
 summary(temp)
 
 # clean temperature dataset - transform from hourly to daily
-x <- temp %>%
-  mutate(date = dmy(date)) %>%
-  select(date, hr)
-  
 temp <- temp %>%
-  select(3:30) %>%
-  summarize(temp = rowSums(.)) %>%
-  cbind(x) %>%
+  mutate(date = dmy(date)) %>%
   group_by(date) %>%
-  summarize(temp = sum(temp))
+  summarize(t_ws1 = mean(t_ws1), 
+            t_ws2 = mean(t_ws2),
+            t_ws3 = mean(t_ws3),
+            t_ws4 = mean(t_ws4),
+            t_ws5 = mean(t_ws5),
+            t_ws6 = mean(t_ws6),
+            t_ws7 = mean(t_ws7),
+            t_ws8 = mean(t_ws8),
+            t_ws9 = mean(t_ws9),
+            t_ws10 = mean(t_ws10),
+            t_ws11 = mean(t_ws11),
+            t_ws12 = mean(t_ws12),
+            t_ws13 = mean(t_ws13),
+            t_ws14 = mean(t_ws14),
+            t_ws15 = mean(t_ws15),
+            t_ws16 = mean(t_ws16),
+            t_ws17 = mean(t_ws17),
+            t_ws18 = mean(t_ws18),
+            t_ws19 = mean(t_ws19),
+            t_ws20 = mean(t_ws20),
+            t_ws21 = mean(t_ws21),
+            t_ws22 = mean(t_ws22),
+            t_ws23 = mean(t_ws23),
+            t_ws24 = mean(t_ws24),
+            t_ws25 = mean(t_ws25),
+            t_ws26 = mean(t_ws26),
+            t_ws27 = mean(t_ws27),
+            t_ws28 = mean(t_ws28)
+            )
+
 ```
 
 ```{r}
 # merge all three datasets
 df <- left_join(demand, temp, by = "date") %>%
-  left_join(., humidity, by = "date") %>%
-  select(date, demand, humidity, temp)
+  left_join(., humidity, by = "date")
 ```
 
 
