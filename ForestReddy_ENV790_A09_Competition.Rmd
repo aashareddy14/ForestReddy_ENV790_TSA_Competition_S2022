@@ -50,15 +50,12 @@ summary(demand)
 # Demand dataset - transform hourly data into daily data
 demand <- demand[1:2191,]
 
-x <- demand %>%
-  select(date) %>%
-  mutate(date = mdy(date))
-
-
 demand <- demand %>%
-  select(-meter_id, -date) %>%
-  summarize(demand = rowMeans(.)) %>%
-  cbind(x)
+  select(-meter_id) %>%
+  mutate(date = mdy(date)) %>%
+  pivot_longer(., cols = 2:25) %>%
+  group_by(date) %>%
+  summarize(demand = mean(value, na.rm = T))
 ```
 
 ```{r}
@@ -150,10 +147,76 @@ df <- left_join(demand, temp, by = "date") %>%
   left_join(., humidity, by = "date")
 ```
 
+# Exploratory Data Analysis 
+
+First we will start by examining the demand data. We see that there is definitely a seasonal trend, and it looks like an increasing trend as well. We also see that the ACF plot has some scalloping pattern. 
+
+```{r}
+# plot time series of demand data
+ggplot(demand, aes(x = date, y = demand)) + 
+  geom_line() + 
+  labs(title = "Time Series of Demand (2005 - 2010)", 
+       x = "Year", 
+       y = "Demand")
+  
+# ACF and PACF plot
+par(mfrow=c(1,2))
+
+Acf(demand$demand, lag = 40, plot = T)
+Pacf(demand$demand, lag = 40, plot = T)
+```
+
+
 
 # Methods and Modeling
 
+In order to assess our models, we will choose the holdout period to be the final year in the dataset, 2010. We will thus train our models on data from 2005 - 2009, and then evaluate how well our models perform on the 2010 data, choosing the final model to be the one that acheives the highest MAPE. Finally, we will forecast demand for 2011 using our best model. 
 
+```{r}
+# split into test and training set
+demand_train <- demand %>%
+  filter(date >= "2005-01-01", date < "2010-01-01")
+
+demand_test <- demand %>%
+  filter(date >= "2010-01-01")
+```
+
+We also transform the demand dataframe into a time series object here. 
+
+```{r}
+# transform demand into ts object for both training and test set
+demand_train_ts <- ts(demand_train, start = 2001, frequency = 365)
+demand_test_ts <- ts(demand_test, start = 2010, frequency = 365)
+```
+
+
+## Model 1
+
+The first model we try is a seasonal naive model. To do this we first decompose and deseason the demand series. 
+
+```{r}
+#Using R decompose function
+decompose_demand <- decompose(demand_train_ts[,"demand"],"additive")
+plot(decompose_demand)
+
+#The ACF plot show a slow decay which is a sign of non-stationarity.
+#Creating non-seasonal residential price time series because some models can't handle seasonality
+deseasonal_demand <- seasadj(decompose_demand)  
+```
+
+```{r}
+# observed data
+observed <- demand_train[, "demand"] %>%
+  pull()
+
+# fit seasonal naive model - I'm not sure what h should be?
+SNAIVE_seas <- snaive(demand_train_ts[,"demand"], h=365)
+checkresiduals(SNAIVE_seas)
+
+# check accuracy
+SNAIVE_scores <- accuracy(SNAIVE_seas$mean,observed)
+plot(SNAIVE_seas)
+```
 
 # Results
 
