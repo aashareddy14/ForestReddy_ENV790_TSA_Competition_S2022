@@ -32,8 +32,8 @@ In this assignment, we participate in a Kaggle competition
 ```{r}
 # load data
 demand <- read.csv("data/load.csv") %>%
-  janitor::clean_names() %>%
-  rename(meter_id = i_meter_id)
+  janitor::clean_names() 
+  # rename(meter_id = i_meter_id) I don't think this code is needed
 
 humidity <- read.csv("data/relative_humidity.csv", skipNul = T) %>%
   janitor::clean_names()
@@ -197,7 +197,7 @@ The first model we try is a seasonal naive model. To do this we first decompose 
 
 ```{r}
 # Using R decompose function
-decompose_demand <- decompose(demand_train_ts[, "demand"], "additive")
+decompose_demand <- decompose(demand_train_ts, "additive")
 plot(decompose_demand)
 
 # The ACF plot show a slow decay which is a sign of non-stationarity.
@@ -230,10 +230,10 @@ submission_template <- read_excel("~/Desktop/Spring 2022/790_TimeSeries/ENV790_T
 # forecast for Jan 2011 (this is what we submit to kaggle)
 SNAIVE_forecast <- as.data.frame(SNAIVE_seas$model$future) 
 SNAIVE_forecast <- cbind(submission_template, SNAIVE_forecast) %>%
-  rename(load = x)
+  rename(load = x) %>%
+  filter( date <= "2011-02-01")
 
-# next steps
-  # only forecast for Jan 2011 - I am not sure if over forecasted by using h = 365
+# next steps 
   # write.csv to save
 ```
 
