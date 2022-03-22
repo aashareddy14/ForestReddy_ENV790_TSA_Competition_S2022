@@ -19,6 +19,7 @@ library(tseries)
 library(outliers)
 library(tidyverse)
 library(cowplot)
+library(readxl)
 ```
 
 # Introduction
@@ -221,12 +222,19 @@ plot(SNAIVE_seas)
 # now refit model using all data (2005 - 2010) - use demand_ts
 SNAIVE_seas <- snaive(demand_ts, h = 365)
 
+# load submission template and extract date column
+submission_template <- read_excel("~/Desktop/Spring 2022/790_TimeSeries/ENV790_TimeSeriesAnalysis_Sp2022/Competition/Output/submission_template.xlsx", 
+    sheet = "p90") %>% 
+  select(date)
+
 # forecast for Jan 2011 (this is what we submit to kaggle)
-SNAIVE_forecast <- SNAIVE_seas$model$future 
+SNAIVE_forecast <- as.data.frame(SNAIVE_seas$model$future) 
+SNAIVE_forecast <- cbind(submission_template, SNAIVE_forecast) %>%
+  rename(load = x)
 
 # next steps
-  # create data frame
-  # save as .csv
+  # only forecast for Jan 2011 - I am not sure if over forecasted by using h = 365
+  # write.csv to save
 ```
 
 ## Model 2 
@@ -238,7 +246,7 @@ Our second model will be a seasonal ARIMA model.
 SARIMA_autofit <- auto.arima(demand_test_ts, seasonal = TRUE)
 checkresiduals(SARIMA_autofit)
 
-SARIMA_for <- :forecast(SARIMA_autofit, h = 365)
+SARIMA_for <- forecast(SARIMA_autofit, h = 365)
 
 # forecast for Jan 2010
 SARIMA_scores <- accuracy(SARIMA_for$mean, test)
