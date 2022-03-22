@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = FALSE)
 # load packages
 library(lubridate)
 library(ggplot2)
-library(forecast)  
+library(forecast)
 library(Kendall)
 library(tseries)
 library(outliers)
@@ -48,7 +48,7 @@ First we examine the demand dataset. We note that all rows after 2191 are NA, so
 summary(demand)
 
 # Demand dataset - transform hourly data into daily data
-demand <- demand[1:2191,]
+demand <- demand[1:2191, ]
 
 demand <- demand %>%
   select(-meter_id) %>%
@@ -66,38 +66,36 @@ summary(humidity)
 humidity <- humidity %>%
   mutate(date = dmy(date)) %>%
   group_by(date) %>%
-  summarize(rh_ws1 = mean(rh_ws1), 
-            rh_ws2 = mean(rh_ws2), 
-            rh_ws3 = mean(rh_ws3),
-            rh_ws4 = mean(rh_ws4),
-            rh_ws5 = mean(rh_ws5),
-            rh_ws6 = mean(rh_ws6),
-            rh_ws7 = mean(rh_ws7),
-            rh_ws8 = mean(rh_ws8),
-            rh_ws9 = mean(rh_ws9),
-            rh_ws10 = mean(rh_ws10),
-            rh_ws11 = mean(rh_ws11),
-            rh_ws12 = mean(rh_ws12),
-            rh_ws13 = mean(rh_ws13),
-            rh_ws14 = mean(rh_ws14),
-            rh_ws15 = mean(rh_ws15),
-            rh_ws16 = mean(rh_ws16),
-            rh_ws17 = mean(rh_ws17),
-            rh_ws18 = mean(rh_ws18),
-            rh_ws19 = mean(rh_ws19),
-            rh_ws20 = mean(rh_ws20),
-            rh_ws21 = mean(rh_ws21),
-            rh_ws22 = mean(rh_ws22),
-            rh_ws23 = mean(rh_ws23),
-            rh_ws24 = mean(rh_ws24),
-            rh_ws25 = mean(rh_ws25),
-            rh_ws26 = mean(rh_ws26),
-            rh_ws27 = mean(rh_ws27),
-            rh_ws28 = mean(rh_ws28)
-            )
-  
-
-  
+  summarize(
+    rh_ws1 = mean(rh_ws1),
+    rh_ws2 = mean(rh_ws2),
+    rh_ws3 = mean(rh_ws3),
+    rh_ws4 = mean(rh_ws4),
+    rh_ws5 = mean(rh_ws5),
+    rh_ws6 = mean(rh_ws6),
+    rh_ws7 = mean(rh_ws7),
+    rh_ws8 = mean(rh_ws8),
+    rh_ws9 = mean(rh_ws9),
+    rh_ws10 = mean(rh_ws10),
+    rh_ws11 = mean(rh_ws11),
+    rh_ws12 = mean(rh_ws12),
+    rh_ws13 = mean(rh_ws13),
+    rh_ws14 = mean(rh_ws14),
+    rh_ws15 = mean(rh_ws15),
+    rh_ws16 = mean(rh_ws16),
+    rh_ws17 = mean(rh_ws17),
+    rh_ws18 = mean(rh_ws18),
+    rh_ws19 = mean(rh_ws19),
+    rh_ws20 = mean(rh_ws20),
+    rh_ws21 = mean(rh_ws21),
+    rh_ws22 = mean(rh_ws22),
+    rh_ws23 = mean(rh_ws23),
+    rh_ws24 = mean(rh_ws24),
+    rh_ws25 = mean(rh_ws25),
+    rh_ws26 = mean(rh_ws26),
+    rh_ws27 = mean(rh_ws27),
+    rh_ws28 = mean(rh_ws28)
+  )
 ```
 
 
@@ -109,36 +107,36 @@ summary(temp)
 temp <- temp %>%
   mutate(date = dmy(date)) %>%
   group_by(date) %>%
-  summarize(t_ws1 = mean(t_ws1), 
-            t_ws2 = mean(t_ws2),
-            t_ws3 = mean(t_ws3),
-            t_ws4 = mean(t_ws4),
-            t_ws5 = mean(t_ws5),
-            t_ws6 = mean(t_ws6),
-            t_ws7 = mean(t_ws7),
-            t_ws8 = mean(t_ws8),
-            t_ws9 = mean(t_ws9),
-            t_ws10 = mean(t_ws10),
-            t_ws11 = mean(t_ws11),
-            t_ws12 = mean(t_ws12),
-            t_ws13 = mean(t_ws13),
-            t_ws14 = mean(t_ws14),
-            t_ws15 = mean(t_ws15),
-            t_ws16 = mean(t_ws16),
-            t_ws17 = mean(t_ws17),
-            t_ws18 = mean(t_ws18),
-            t_ws19 = mean(t_ws19),
-            t_ws20 = mean(t_ws20),
-            t_ws21 = mean(t_ws21),
-            t_ws22 = mean(t_ws22),
-            t_ws23 = mean(t_ws23),
-            t_ws24 = mean(t_ws24),
-            t_ws25 = mean(t_ws25),
-            t_ws26 = mean(t_ws26),
-            t_ws27 = mean(t_ws27),
-            t_ws28 = mean(t_ws28)
-            )
-
+  summarize(
+    t_ws1 = mean(t_ws1),
+    t_ws2 = mean(t_ws2),
+    t_ws3 = mean(t_ws3),
+    t_ws4 = mean(t_ws4),
+    t_ws5 = mean(t_ws5),
+    t_ws6 = mean(t_ws6),
+    t_ws7 = mean(t_ws7),
+    t_ws8 = mean(t_ws8),
+    t_ws9 = mean(t_ws9),
+    t_ws10 = mean(t_ws10),
+    t_ws11 = mean(t_ws11),
+    t_ws12 = mean(t_ws12),
+    t_ws13 = mean(t_ws13),
+    t_ws14 = mean(t_ws14),
+    t_ws15 = mean(t_ws15),
+    t_ws16 = mean(t_ws16),
+    t_ws17 = mean(t_ws17),
+    t_ws18 = mean(t_ws18),
+    t_ws19 = mean(t_ws19),
+    t_ws20 = mean(t_ws20),
+    t_ws21 = mean(t_ws21),
+    t_ws22 = mean(t_ws22),
+    t_ws23 = mean(t_ws23),
+    t_ws24 = mean(t_ws24),
+    t_ws25 = mean(t_ws25),
+    t_ws26 = mean(t_ws26),
+    t_ws27 = mean(t_ws27),
+    t_ws28 = mean(t_ws28)
+  )
 ```
 
 ```{r}
@@ -153,15 +151,16 @@ First we will start by examining the demand data. We see that there is definitel
 
 ```{r}
 # plot time series of demand data
-ggplot(demand, aes(x = date, y = demand)) + 
-  geom_line() + 
-  labs(title = "Time Series of Demand (2005 - 2010)", 
-       x = "Year", 
-       y = "Demand")
-  
-# ACF and PACF plot
-par(mfrow=c(1,2))
+ggplot(demand, aes(x = date, y = demand)) +
+  geom_line() +
+  labs(
+    title = "Time Series of Demand (2005 - 2010)",
+    x = "Year",
+    y = "Demand"
+  )
 
+# ACF and PACF plot
+par(mar = c(3, 3, 3, 0));par(mfrow = c(1, 2))
 Acf(demand$demand, lag = 40, plot = T)
 Pacf(demand$demand, lag = 40, plot = T)
 ```
@@ -185,9 +184,9 @@ We also transform the demand dataframe into a time series object here.
 
 ```{r}
 # transform demand into ts object for both training and test set
-demand_train_ts <- ts(demand_train, start = 2001, frequency = 365)
-demand_test_ts <- ts(demand_test, start = 2010, frequency = 365)
-demand_ts <- ts(demand, start = 2005, frequency = 365)
+demand_train_ts <- ts(demand_train$demand, start = 2005, frequency = 365)
+demand_test_ts <- ts(demand_test$demand, start = 2010, frequency = 365)
+demand_ts <- ts(demand$demand, start = 2005, frequency = 365)
 ```
 
 
@@ -196,34 +195,36 @@ demand_ts <- ts(demand, start = 2005, frequency = 365)
 The first model we try is a seasonal naive model. To do this we first decompose and deseason the demand series. 
 
 ```{r}
-#Using R decompose function
-decompose_demand <- decompose(demand_train_ts[,"demand"],"additive")
+# Using R decompose function
+decompose_demand <- decompose(demand_train_ts[, "demand"], "additive")
 plot(decompose_demand)
 
-#The ACF plot show a slow decay which is a sign of non-stationarity.
-#Creating non-seasonal residential price time series because some models can't handle seasonality
-deseasonal_demand <- seasadj(decompose_demand)  
+# The ACF plot show a slow decay which is a sign of non-stationarity.
+# Creating non-seasonal residential price time series because some models can't handle seasonality
+deseasonal_demand <- seasadj(decompose_demand)
+
 ```
 
 Confused on the below part - not sure how to get forecast. 
 ```{r}
-# observed data
-observed <- demand_train[, "demand"] %>%
-  pull()
+# test data
+test <- demand_test$demand
 
 # fit seasonal naive model - I'm not sure what h should be?
-SNAIVE_seas <- snaive(demand_train_ts[,"demand"], h=31)
+SNAIVE_seas <- snaive(demand_train_ts, h = 365)
 checkresiduals(SNAIVE_seas)
 
 # forecast for Jan 2010
-SNAIVE_scores <- accuracy(SNAIVE_seas$mean,observed)
+SNAIVE_scores <- accuracy(SNAIVE_seas, test)
 plot(SNAIVE_seas)
 
 # now refit model using all data (2005 - 2010) - use demand_ts
-
+SNAIVE_seas <- snaive(demand_ts, h = 365)
 
 # forecast for Jan 2011 (this is what we submit to kaggle)
+SNAIVE_forecast <- SNAIVE_seas$model$future
+
+# still need to create data frame for upload
 ```
 
 # Results
-
