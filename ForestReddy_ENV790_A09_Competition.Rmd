@@ -334,6 +334,17 @@ SARIMA_forecast_Jan_2011 <- cbind(submission_template,
 write.csv(SARIMA_forecast_Jan_2011, "kaggle_output/SARIMA_autofit_forecast.csv")
 ```
 
+At this point, we submit both models to kaggle and ______ outperformed ______ on the unseen test set. We will continue trying to improve our models. 
+
+# Model 3
+
+Some ideas for next models: 
+- look at ACF and PACF plot and try to come up with a seasonal arima model on our own (SARAIMA_manual as opposed to SARIMA_autofit). (example from 07_Lesson, similar to this week's homework)
+- ?? Not sure tbh
+
+
+# Model 4
+
 
 
 # Results
