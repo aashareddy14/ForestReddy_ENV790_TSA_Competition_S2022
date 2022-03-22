@@ -33,7 +33,6 @@ In this assignment, we participate in a Kaggle competition
 # load data
 demand <- read.csv("data/load.csv") %>%
   janitor::clean_names() 
-  # rename(meter_id = i_meter_id) I don't think this code is needed
 
 humidity <- read.csv("data/relative_humidity.csv", skipNul = T) %>%
   janitor::clean_names()
@@ -52,7 +51,7 @@ summary(demand)
 demand <- demand[1:2191, ]
 
 demand <- demand %>%
-  select(-meter_id) %>%
+  select(-i_meter_id) %>%
   mutate(date = mdy(date)) %>%
   pivot_longer(., cols = 2:25) %>%
   group_by(date) %>%
@@ -148,7 +147,7 @@ df <- left_join(demand, temp, by = "date") %>%
 
 # Exploratory Data Analysis 
 
-First we will start by examining the demand data. We see that there is definitely a seasonal trend, and it looks like an increasing trend as well. We also see that the ACF plot has some scalloping pattern. 
+First we will start by examining the demand data. We see that there is definitely a seasonal trend, and it looks like an increasing trend as well. We also see that the ACF plot has maybe a small scalloping pattern. 
 
 ```{r}
 # plot time series of demand data
@@ -161,7 +160,7 @@ ggplot(demand, aes(x = date, y = demand)) +
   )
 
 # ACF and PACF plot
-par(mar = c(3, 3, 3, 0));par(mfrow = c(1, 2))
+par(mfrow = c(1, 2))
 Acf(demand$demand, lag = 40, plot = T)
 Pacf(demand$demand, lag = 40, plot = T)
 ```
@@ -185,13 +184,18 @@ We also transform the demand dataframe into a time series object here.
 
 ```{r}
 # transform demand into ts object for both training and test set
-demand_train_ts <- ts(demand_train$demand, start = 2005, frequency = 365)
-demand_test_ts <- ts(demand_test$demand, start = 2010, frequency = 365)
-demand_ts <- ts(demand$demand, start = 2005, frequency = 365)
+demand_train_ts <- ts(demand_train$demand, start = c(2005, 1, 1), frequency = 365)
+#demand_train_ts <- msts(demand_train$demand, seasonal.periods = c(12, 365.25))
+demand_test_ts <- ts(demand_test$demand, start = c(2010,1, 1), frequency = 365)
+demand_ts <- ts(demand$demand, start = c(2005, 1, 1), frequency = 365)
+
+# check 
+head(demand_train_ts,15)
+plot(demand_train_ts)
 ```
 
 
-## Model 1
+## Model 1 - Seasonal Naive Model
 
 The first model we try is a seasonal naive model. To do this we first decompose and deseason the demand series. 
 
@@ -206,51 +210,75 @@ deseasonal_demand <- seasadj(decompose_demand)
 
 ```
 
-Confused on the below part - not sure how to get forecast. 
+Next we fit the model using the training data, from 2005 - 2009. 
+
 ```{r}
-# test data
-test <- demand_test$demand
-
 # fit seasonal naive model - I'm not sure what h should be? I think 365 because we are working
-SNAIVE_seas <- snaive(demand_train_ts, h = 365)
-checkresiduals(SNAIVE_seas)
+SNAIVE_seas_2009 <- snaive(demand_train_ts, h = 31)
+checkresiduals(SNAIVE_seas_2009)
+```
 
+We see that the residuals are normally distributed. However, there seems to be a pattern and significiant correlation in the ACF. We hope to improve on this in our next model.
+
+We then forecast daily demand for January 2010, seen in the plot below. The training MAPE is 23.05 while the test MAPE (on January 2010) is 42.36. The MAPE is a lot higher for the test data, meaning our seasonal naive model is overfitting to the training data.
+
+```{r}
 # forecast for Jan 2010
-SNAIVE_scores <- accuracy(SNAIVE_seas, test)
-plot(SNAIVE_seas)
 
+# test data - Jan 2021
+test <- demand_test$demand[1:31]
+
+par(mfrow = c(1, 1))
+SNAIVE_scores_2009 <- accuracy(SNAIVE_seas_2009, test)
+SNAIVE_scores_2009
+plot(SNAIVE_seas_2009)
+
+SNAIVE_forecast_Jan_2010 <- as.data.frame(SNAIVE_seas_2009$model$future)[1:31,] 
+```
+
+Now we refit the seasonal naive model using all data from 2005 - 2010, and then use that to forecast for January 2011. 
+
+```{r}
 # now refit model using all data (2005 - 2010) - use demand_ts
-SNAIVE_seas <- snaive(demand_ts, h = 365)
+SNAIVE_seas_2010 <- snaive(demand_ts, h = 31)
 
 # load submission template and extract date column
-submission_template <- read_excel("~/Desktop/Spring 2022/790_TimeSeries/ENV790_TimeSeriesAnalysis_Sp2022/Competition/Output/submission_template.xlsx", 
+submission_template <- read_excel("data/submission_template.csv", 
     sheet = "p90") %>% 
   select(date)
 
 # forecast for Jan 2011 (this is what we submit to kaggle)
-SNAIVE_forecast <- as.data.frame(SNAIVE_seas$model$future) 
-SNAIVE_forecast <- cbind(submission_template, SNAIVE_forecast) %>%
+SNAIVE_forecast_Jan_2011 <- as.data.frame(SNAIVE_seas_2010$model$future) 
+SNAIVE_forecast_Jan_2011 <- cbind(submission_template, SNAIVE_forecast_Jan_2011) %>%
   rename(load = x) %>%
-  filter( date <= "2011-02-01")
+  filter(date <= "2011-01-31")
 
-# next steps 
-  # write.csv to save
+# plot forecast
+plot(SNAIVE_seas_2010)
+
+# write csv
+write.csv(SNAIVE_forecast_Jan_2011, "kaggle_output/SNAIVE_forecast.csv")
 ```
 
-## Model 2 
+## Model 2 - Seasonal ARIMA model (Autofit)
 
 Our second model will be a seasonal ARIMA model.  
 
 ```{r}
-# fit SARIMA model - Not sure if I am doing this right.
-SARIMA_autofit <- auto.arima(demand_test_ts, seasonal = TRUE)
-checkresiduals(SARIMA_autofit)
+# I think we need to first fit on the train data, and then fit to test
+# data afterwards - I'm going to keep this code chunk but do one below it that 
+# I think is correct and then we can compare
 
-SARIMA_for <- forecast(SARIMA_autofit, h = 365)
+
+# fit SARIMA model - Not sure if I am doing this right.
+# SARIMA_autofit <- auto.arima(demand_test_ts, seasonal = TRUE)
+# checkresiduals(SARIMA_autofit)
+
+#SARIMA_for <- forecast(SARIMA_autofit, h = 365)
 
 # forecast for Jan 2010
-SARIMA_scores <- accuracy(SARIMA_for$mean, test)
-plot(SARIMA_for) # this plot looks terrible!
+#SARIMA_scores <- accuracy(SARIMA_for$mean, test)
+#plot(SARIMA_for) # this plot looks terrible!
 
 # now refit model using all data (2005 - 2010) - use demand_ts
 
@@ -259,6 +287,52 @@ plot(SARIMA_for) # this plot looks terrible!
  
 ```
 
+
+First we fit the model using the training data, from 2005 - 2009, using the auto arima function. The auto arima chooses an ARIMA(2, 0, 2) model.
+
+```{r}
+# fit sarima autofit
+SARIMA_autofit_2009 <- auto.arima(demand_train_ts)
+checkresiduals(SARIMA_autofit_2009)
+```
+
+We see that the residuals here are normally distributed but do not seem to be that random. ACF shows significant correlations as well - this means that this likely will not be our best model!
+
+Still, we move forward and forecast daily demand for January 2010, seen in the plot below. The MAPE on the test set (Januray 2010) is 25.1363 here, and we note that this is a large improvement from the seasonal naive model. We also see the plot forecast for Jan 2010 below. 
+
+```{r}
+# forecast for Jan 2010
+
+SARIMA_forecast_Jan_2010 <- forecast::forecast(SARIMA_autofit_2009,h=31)
+SARIMA_scores_Jan_2010 <- accuracy(SARIMA_forecast_Jan_2010$mean,test)
+SARIMA_scores_Jan_2010
+plot(SARIMA_forecast_Jan_2010)
+```
+
+Now we refit the seasonal naive model using all data from 2005 - 2010, and then use that to forecast for January 2011. 
+
+```{r}
+# now refit model using all data (2005 - 2010) - use demand_ts
+SARIMA_autofit_2010 <- auto.arima(demand_ts)
+
+# load submission template and extract date column
+submission_template <- read_excel("data/submission_template.csv", 
+    sheet = "p90") %>% 
+  select(date) %>%
+  filter(date <= "2011-01-31")
+
+# forecast for Jan 2011 (this is what we submit to kaggle)
+SARIMA_forecast_Jan_2011 <- forecast::forecast(SARIMA_autofit_2010,h=31)
+
+# plot forecast
+plot(SARIMA_forecast_Jan_2011)
+
+SARIMA_forecast_Jan_2011 <- cbind(submission_template, 
+                                  load = SARIMA_forecast_Jan_2011$mean)
+
+# write csv
+write.csv(SARIMA_forecast_Jan_2011, "kaggle_output/SARIMA_autofit_forecast.csv")
+```
 
 
 
