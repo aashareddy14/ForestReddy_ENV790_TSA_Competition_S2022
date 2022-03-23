@@ -190,7 +190,7 @@ demand_test_ts <- ts(demand_test$demand, start = c(2010,1, 1), frequency = 365)
 demand_ts <- ts(demand$demand, start = c(2005, 1, 1), frequency = 365)
 
 # check 
-head(demand_train_ts,15)
+head(demand_train_ts,15) 
 plot(demand_train_ts)
 ```
 
