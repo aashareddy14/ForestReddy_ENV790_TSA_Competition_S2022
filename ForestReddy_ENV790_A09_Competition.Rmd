@@ -51,7 +51,7 @@ summary(demand)
 demand <- demand[1:2191, ]
 
 demand <- demand %>%
-  select(-meter_id) %>%
+  select(-i_meter_id) %>%
   mutate(date = mdy(date)) %>%
   pivot_longer(., cols = 2:25) %>%
   group_by(date) %>%
