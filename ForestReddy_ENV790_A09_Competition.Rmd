@@ -9,7 +9,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
-```{r, warning=FALSE}
+```{r, warning=FALSE, message=FALSE}
 # load packages
 library(lubridate)
 library(ggplot2)
@@ -51,7 +51,7 @@ summary(demand)
 demand <- demand[1:2191, ]
 
 demand <- demand %>%
-  select(-i_meter_id) %>%
+  select(-meter_id) %>%
   mutate(date = mdy(date)) %>%
   pivot_longer(., cols = 2:25) %>%
   group_by(date) %>%
@@ -160,7 +160,7 @@ ggplot(demand, aes(x = date, y = demand)) +
   )
 
 # ACF and PACF plot
-par(mfrow = c(1, 2))
+par(mar=c(3,3,3,0));par(mfrow = c(1, 2)) # adding so the plot titles are fully visible.
 Acf(demand$demand, lag = 40, plot = T)
 Pacf(demand$demand, lag = 40, plot = T)
 ```
@@ -218,7 +218,7 @@ SNAIVE_seas_2009 <- snaive(demand_train_ts, h = 31)
 checkresiduals(SNAIVE_seas_2009)
 ```
 
-We see that the residuals are normally distributed. However, there seems to be a pattern and significiant correlation in the ACF. We hope to improve on this in our next model.
+We see that the residuals are normally distributed. However, there seems to be a pattern and significant correlation in the ACF. We hope to improve on this in our next model.
 
 We then forecast daily demand for January 2010, seen in the plot below. The training MAPE is 23.05 while the test MAPE (on January 2010) is 42.36. The MAPE is a lot higher for the test data, meaning our seasonal naive model is overfitting to the training data.
 
@@ -263,30 +263,6 @@ write.csv(SNAIVE_forecast_Jan_2011, "kaggle_output/SNAIVE_forecast.csv")
 ## Model 2 - Seasonal ARIMA model (Autofit)
 
 Our second model will be a seasonal ARIMA model.  
-
-```{r}
-# I think we need to first fit on the train data, and then fit to test
-# data afterwards - I'm going to keep this code chunk but do one below it that 
-# I think is correct and then we can compare
-
-
-# fit SARIMA model - Not sure if I am doing this right.
-# SARIMA_autofit <- auto.arima(demand_test_ts, seasonal = TRUE)
-# checkresiduals(SARIMA_autofit)
-
-#SARIMA_for <- forecast(SARIMA_autofit, h = 365)
-
-# forecast for Jan 2010
-#SARIMA_scores <- accuracy(SARIMA_for$mean, test)
-#plot(SARIMA_for) # this plot looks terrible!
-
-# now refit model using all data (2005 - 2010) - use demand_ts
-
-
-# forecast for Jan 2011 (this is what we submit to kaggle)
- 
-```
-
 
 First we fit the model using the training data, from 2005 - 2009, using the auto arima function. The auto arima chooses an ARIMA(2, 0, 2) model.
 
@@ -341,6 +317,7 @@ At this point, we submit both models to kaggle and ______ outperformed ______ on
 Some ideas for next models: 
 - look at ACF and PACF plot and try to come up with a seasonal arima model on our own (SARAIMA_manual as opposed to SARIMA_autofit). (example from 07_Lesson, similar to this week's homework)
 - ?? Not sure tbh
+
 
 
 # Model 4
