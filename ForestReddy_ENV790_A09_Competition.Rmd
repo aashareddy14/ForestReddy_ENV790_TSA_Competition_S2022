@@ -185,7 +185,7 @@ We also transform the demand dataframe into a time series object here.
 ```{r}
 # transform demand into ts object for both training and test set
 demand_train_ts <- ts(demand_train$demand, start = c(2005, 1, 1), frequency = 365)
-#demand_train_ts <- msts(demand_train$demand, seasonal.periods = c(12, 365.25))
+#demand_train_ts <- msts(demand_train$demand, seasonal.periods = c(7, 365))
 demand_test_ts <- ts(demand_test$demand, start = c(2010,1, 1), frequency = 365)
 demand_ts <- ts(demand$demand, start = c(2005, 1, 1), frequency = 365)
 
