@@ -9,7 +9,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
-```{r, warning=FALSE, message=FALSE}
+```{r library, warning=FALSE, message=FALSE}
 # load packages
 library(lubridate)
 library(ggplot2)
@@ -155,7 +155,7 @@ average_temp_vector <- as.vector(average_temp$avg_temp)
 ```
 
 ```{r}
-# merge all three datasets
+# merge all three data sets
 df <- left_join(demand, average_temp, by = "date") %>%
   left_join(., average_humidity, by = "date")
 ```
@@ -199,10 +199,26 @@ temp_train <- df %>%
   select(avg_temp) 
 temp_train <- as.vector(temp_train$avg_temp)
  
-jan_2010_temp <- df %>%
+test_temp <- df %>%
   filter(date >= "2010-01-01", date <= "2010-01-31") %>% 
   select(avg_temp) 
-jan_2010_temp <- as.vector(jan_2010_temp$avg_temp)
+test_temp <- as.vector(test_temp$avg_temp)
+
+humid_train <- df %>%
+  filter(date >= "2005-01-01", date < "2010-01-01") %>% 
+  select(avg_humidity) 
+humid_train <- as.vector(humid_train$avg_humidity)
+ 
+test_humid <- df %>%
+  filter(date >= "2010-01-01", date <= "2010-01-31") %>% 
+  select(avg_humidity) 
+test_humid <- as.vector(test_humid$avg_humidity)
+
+# create matrix of for xreg input
+xreg_train <- cbind(temp_train, humid_train)
+xreg_test <- cbind(test_temp, test_humid)
+xreg_full <- cbind(df$avg_temp,df$avg_humidity)
+
 ```
 
 We also transform the demand dataframe into a time series object here. 
@@ -350,11 +366,11 @@ Regardless, we will forecast demand for January 2010. The MAPE on the test set (
 
 ```{r}
 # forecast for Jan 2010
-SARIMAX_forecast_Jan_2010_temp <- forecast::forecast(SARIMAX_autofit_2009_temp, h = 31, 
-                                                    xreg = jan_2010_temp)
-SARIMAX_scores_Jan_2010_temp <- accuracy(SARIMAX_forecast_Jan_2010_temp$mean, test)
-SARIMAX_scores_Jan_2010_temp
-plot(SARIMAX_forecast_Jan_2010_temp)
+SARIMAX_forecast_test_temp <- forecast::forecast(SARIMAX_autofit_2009_temp, h = 31, 
+                                                    xreg = test_temp)
+SARIMAX_scores_test_temp <- accuracy(SARIMAX_forecast_test_temp$mean, test)
+SARIMAX_scores_test_temp
+plot(SARIMAX_forecast_test_temp)
 ```
 Now we refit the seasonal naive model using all data from 2005 - 2010, and then use that to forecast for January 2011.  The January 2011 temperature is assumed to be the same as January 2010 temperature.
 
@@ -369,10 +385,7 @@ submission_template <- read_excel("data/submission_template.csv",
   filter(date <= "2011-01-31")
 
 # forecast for Jan 2011 (this is what we submit to kaggle)
-SARIMAX_forecast_Jan_2011_temp <- forecast::forecast(SARIMAX_temp_autofit_2010,h = 31, xreg = jan_2010_temp) # ASSUMES THE SAME TEMP AS 2010! 
-
-# plot forecast
-plot(SARIMA_forecast_Jan_2011)
+SARIMAX_forecast_Jan_2011_temp <- forecast::forecast(SARIMAX_temp_autofit_2010,h = 31, xreg = test_temp) # ASSUMES THE SAME TEMP AS 2010! 
 
 SARIMAX_forecast_Jan_2011_temp <- cbind(submission_template, 
                                   load = SARIMAX_forecast_Jan_2011_temp$mean)
@@ -388,16 +401,21 @@ ARIMA + FOURIER
 
 Next we will use a autofit arima with seasonal fourier terms to account for multiple seasonalilty present in the data. The multiple seasonality comes from the the repeated weekly variation and seasonal monthly variation throughout the year. 
 
-```{r}
+```{r msts creation}
+# create multiple seasonal time series objects 
+# training data set
 demand_train_msts <- msts(demand_train$demand, 
                            seasonal.periods = c(7,365.25),
                            start = c(2005,1,1))
-autoplot(demand_train_msts)
+#full dataset
+demand_msts <- msts(demand$demand, 
+                           seasonal.periods = c(7,365.25),
+                           start = c(2005,1,1))
 ```
 
 
-```{r}
-# ARIMA + Fourier Fit
+```{r Model 4 train}
+# ARIMA + Fourier Fit training data
 ARIMA_Four_fit_2009 <- auto.arima(demand_train_msts, 
                              seasonal = FALSE, 
                              lambda = 0,
@@ -417,31 +435,84 @@ ARIMA_Four_for_2010_scores <- accuracy(ARIMA_Four_for_2010$mean,test)
 autoplot(ARIMA_Four_for_2010)
 ```
 
-Next, we refit the model using all data 
-```{r}
+Next, we refit the model using all demand data. 
+```{r Model 4 forecast}
+# ARIMA + Fourier fit full data set 2005-2010
+ARIMA_Four_fit_2010 <- auto.arima(demand_msts, 
+                             seasonal = FALSE, 
+                             lambda = 0,
+                             xreg = fourier(demand_msts, 
+                                          K = c(2,4))
+                             )
+# forecast Jan 2011
+ARIMA_Four_for_2011 <- forecast(ARIMA_Four_fit_2011,
+                           xreg = fourier(demand_msts, 
+                                        K = c(2,4),
+                                        h = 31),
+                           h = 31
+                           ) 
 
+autoplot(ARIMA_Four_for_2011)
+
+
+ARIMA_Four_for_2011 <- cbind(submission_template, 
+                                  load = ARIMA_Four_for_2011$mean)
+
+# write csv
+write.csv(ARIMA_Four_for_2011, "kaggle_output/ARIMA_Four_for_2011.csv")
 ```
 
 
 # Model 5
+This model will implement a seasonal ARIMA model with temperature and humidity as exogenous regressors. Model order will be identified using the auto.arima function. 
+
+
+```{r Model 5 train}
+model5_train <- auto.arima(demand_train_ts, xreg = xreg_train, seasonal = TRUE)
+checkresiduals(model5_train)
+```
+
+```{r Model 5 forecast, warning=FALSE}
+# test forecast  for Jan 2010
+model5_Jan2010_for <- forecast::forecast(model5_train, h = 31, 
+                                                    xreg = xreg_test)
+model5_scores_test <- accuracy(model5_Jan2010_for$mean, test)
+model5_scores_test
+plot(model5_Jan2010_for)
+
+# now refit model using all data (2005 - 2010) - use demand_ts
+model5 <- auto.arima(demand_ts, xreg = xreg_full)
+
+# forecast for Jan 2011 (this is what we submit to kaggle)
+Model5_Jan_forecast_Jan_2011_temp <- forecast::forecast(model5, h = 31, xreg = xreg_test) 
+# ASSUMES THE SAME TEMP and HUMIDITY AS 2010! We could average January temp and humidity across years or forecast these values with another model. 
+
+# plot forecast
+plot(Model5_Jan_forecast_Jan_2011_temp)
+
+Model5_Jan_forecast_Jan_2011_temp <- cbind(submission_template, 
+                                  load = Model5_Jan_forecast_Jan_2011_temp$mean)
+
+# write csv
+write.csv(Model5_Jan_forecast_Jan_2011_temp, "kaggle_output/SARIMAX_temp_autofit_forecast.csv")
+
+```
+
+
+# Model 6
 Some ideas for next models: 
-- look at ACF and PACF plot and try to come up with a seasonal arima model on our own (SARAIMA_manual as opposed to SARIMA_autofit). (example from 07_Lesson, similar to this week's homework)
-- ?? Not sure tbh
-
-
-
-
-
-
+- TBATS
+- Neural Network Time Series Forecasts
+- STL + ETS
 
 
 # Results
 ```{r}
 #create data frame
 scores <- as.data.frame(
-  rbind( SARIMA_scores_Jan_2010, SARIMA_scores_Jan_2010_temp, ARIMA_Four_for_2010_scores)
+  rbind( SARIMA_scores_Jan_2010, SARIMAX_scores_test_temp, ARIMA_Four_for_2010_scores, model5_scores_test)
   )
-row.names(scores) <- c( "SARIMA(1,2,2)","SARIMAX(3,0,2)_temp", "ARIMA + Fourier")
+row.names(scores) <- c( "SARIMA(1,2,2)","SARIMAX(3,0,2)_temp", "ARIMA + Fourier", "SARIMA + temp + humidity")
 
 #choose model with lowest RMSE
 best_model_index <- which.min(scores[,"RMSE"])
