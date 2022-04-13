@@ -20,6 +20,7 @@ library(outliers)
 library(tidyverse)
 library(cowplot)
 library(readxl)
+library(kableExtra)
 ```
 
 # Introduction
@@ -27,7 +28,6 @@ library(readxl)
 In this assignment, we participate in a Kaggle competition 
 
 # Data Cleaning
-
 
 ```{r}
 # load data
@@ -45,13 +45,13 @@ First we examine the demand dataset. We note that all rows after 2191 are NA, so
 
 ```{r}
 # examine demand dataset
-summary(demand)
+#summary(demand)
 
 # Demand dataset - transform hourly data into daily data
 demand <- demand[1:2191, ]
 
 demand <- demand %>%
-  select(-meter_id) %>%
+  select(-i_meter_id) %>%
   mutate(date = mdy(date)) %>%
   pivot_longer(., cols = 2:25) %>%
   group_by(date) %>%
@@ -60,7 +60,7 @@ demand <- demand %>%
 
 ```{r}
 # examine humidity dataset
-summary(humidity)
+#summary(humidity)
 
 # clean humidity dataset - transform from houly to daily
 humidity <- humidity %>%
@@ -108,7 +108,7 @@ average_humidity <- humidity %>%
 
 ```{r}
 # examine temperature dataset
-summary(temp)
+#summary(temp)
 
 # clean temperature dataset - transform from hourly to daily
 temp <- temp %>%
@@ -221,7 +221,7 @@ xreg_full <- cbind(df$avg_temp,df$avg_humidity)
 
 ```
 
-We also transform the demand dataframe into a time series object here. 
+We also transform the demand dataframe into a time series object. 
 
 ```{r}
 # transform demand into ts object for both training and test set
@@ -350,9 +350,8 @@ SARIMA_forecast_Jan_2011 <- cbind(submission_template,
 write.csv(SARIMA_forecast_Jan_2011, "kaggle_output/SARIMA_autofit_forecast.csv")
 ```
 
-At this point, we submit both models to kaggle and ______ outperformed ______ on the unseen test set. We will continue trying to improve our models. 
 
-# Model 3
+# Model 3 - auto.arima with temperature as exogenous variable
 
 Next we will fit a use auto.arima to fit a seasonal arima model that includes temperature as an exogenous variable. 
 
@@ -360,6 +359,7 @@ Next we will fit a use auto.arima to fit a seasonal arima model that includes te
 SARIMAX_autofit_2009_temp <- auto.arima(demand_train_ts, xreg = temp_train)
 checkresiduals(SARIMAX_autofit_2009_temp)
 ```
+
 We see that the residuals here are normally distributed. However, the ACF shows significant correlations, similar to the original autofit SARIMA. 
 
 Regardless, we will forecast demand for January 2010. The MAPE on the test set (Januray 2010) is 16.26, which is notably smaller that that of the SARIMA(1,2,2) model without temperature as an exogenous variable. The forecast is plotted below. 
@@ -372,6 +372,7 @@ SARIMAX_scores_test_temp <- accuracy(SARIMAX_forecast_test_temp$mean, test)
 SARIMAX_scores_test_temp
 plot(SARIMAX_forecast_test_temp)
 ```
+
 Now we refit the seasonal naive model using all data from 2005 - 2010, and then use that to forecast for January 2011.  The January 2011 temperature is assumed to be the same as January 2010 temperature.
 
 ```{r}
@@ -395,9 +396,7 @@ write.csv(SARIMA_forecast_Jan_2011, "kaggle_output/SARIMAX_temp_autofit_forecast
 ```
 
 
-
-# Model 4
-ARIMA + FOURIER 
+# Model 4 - ARIMA + FOURIER 
 
 Next we will use a autofit arima with seasonal fourier terms to account for multiple seasonalilty present in the data. The multiple seasonality comes from the the repeated weekly variation and seasonal monthly variation throughout the year. 
 
@@ -436,6 +435,7 @@ autoplot(ARIMA_Four_for_2010)
 ```
 
 Next, we refit the model using all demand data. 
+
 ```{r Model 4 forecast}
 # ARIMA + Fourier fit full data set 2005-2010
 ARIMA_Four_fit_2010 <- auto.arima(demand_msts, 
@@ -445,7 +445,7 @@ ARIMA_Four_fit_2010 <- auto.arima(demand_msts,
                                           K = c(2,4))
                              )
 # forecast Jan 2011
-ARIMA_Four_for_2011 <- forecast(ARIMA_Four_fit_2011,
+ARIMA_Four_for_2011 <- forecast(ARIMA_Four_fit_2010,
                            xreg = fourier(demand_msts, 
                                         K = c(2,4),
                                         h = 31),
@@ -463,7 +463,8 @@ write.csv(ARIMA_Four_for_2011, "kaggle_output/ARIMA_Four_for_2011.csv")
 ```
 
 
-# Model 5
+# Model 5 - Seasonal ARIMA with temperature and humidity as exogenous
+
 This model will implement a seasonal ARIMA model with temperature and humidity as exogenous regressors. Model order will be identified using the auto.arima function. 
 
 
@@ -499,20 +500,20 @@ write.csv(Model5_Jan_forecast_Jan_2011_temp, "kaggle_output/Model5_forecast.csv"
 ```
 
 
-# Model 6
-Some ideas for next models: 
-- TBATS
-- Neural Network Time Series Forecasts
-- STL + ETS
-
-
 # Results
+
+As we can see from the below table, the best model by RMSE is the SARIMA autofit model with exogenous variables temperature and humidity. On Kaggle, our best performing model was the SARIMA autofit model with temperature alone as an exogenous variable. 
+
+
 ```{r}
 #create data frame
 scores <- as.data.frame(
-  rbind( SARIMA_scores_Jan_2010, SARIMAX_scores_test_temp, ARIMA_Four_for_2010_scores, model5_scores_test)
+  rbind(SNAIVE_scores_2009[2,1:5], SARIMA_scores_Jan_2010, SARIMAX_scores_test_temp, ARIMA_Four_for_2010_scores, model5_scores_test)
   )
-row.names(scores) <- c( "SARIMA(1,2,2)","SARIMAX(3,0,2)_temp", "ARIMA + Fourier", "SARIMA + temp + humidity")
+row.names(scores) <- c("SNAIVE", "SARIMA(1,2,2)","SARIMAX(3,0,2)_temp", "ARIMA + Fourier", "SARIMA + temp + humidity")
+
+scores %>%
+  kbl(digits = 2, caption = "Performance on Test Set for 5 Models")
 
 #choose model with lowest RMSE
 best_model_index <- which.min(scores[,"RMSE"])
