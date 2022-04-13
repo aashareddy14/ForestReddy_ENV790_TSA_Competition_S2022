@@ -494,7 +494,7 @@ Model5_Jan_forecast_Jan_2011_temp <- cbind(submission_template,
                                   load = Model5_Jan_forecast_Jan_2011_temp$mean)
 
 # write csv
-write.csv(Model5_Jan_forecast_Jan_2011_temp, "kaggle_output/SARIMAX_temp_autofit_forecast.csv")
+write.csv(Model5_Jan_forecast_Jan_2011_temp, "kaggle_output/Model5_forecast.csv")
 
 ```
 
