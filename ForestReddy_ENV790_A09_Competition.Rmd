@@ -45,7 +45,7 @@ First we examine the demand dataset. We note that all rows after 2191 are NA, so
 
 ```{r}
 # examine demand dataset
-summary(demand)
+#summary(demand)
 
 # Demand dataset - transform hourly data into daily data
 demand <- demand[1:2191, ]
@@ -60,7 +60,7 @@ demand <- demand %>%
 
 ```{r}
 # examine humidity dataset
-summary(humidity)
+#summary(humidity)
 
 # clean humidity dataset - transform from houly to daily
 humidity <- humidity %>%
@@ -108,7 +108,7 @@ average_humidity <- humidity %>%
 
 ```{r}
 # examine temperature dataset
-summary(temp)
+#summary(temp)
 
 # clean temperature dataset - transform from hourly to daily
 temp <- temp %>%
@@ -445,7 +445,7 @@ ARIMA_Four_fit_2010 <- auto.arima(demand_msts,
                                           K = c(2,4))
                              )
 # forecast Jan 2011
-ARIMA_Four_for_2011 <- forecast(ARIMA_Four_fit_2011,
+ARIMA_Four_for_2011 <- forecast(ARIMA_Four_fit_2010,
                            xreg = fourier(demand_msts, 
                                         K = c(2,4),
                                         h = 31),
@@ -502,14 +502,18 @@ write.csv(Model5_Jan_forecast_Jan_2011_temp, "kaggle_output/SARIMAX_temp_autofit
 
 # Results
 
+As we can see from the below table, the best model by RMSE is the SARIMA autofit model with exogenous variables temperature and humidity. On Kaggle, our best performing model was the SARIMA autofit model with temperature alone as an exogenous variable. 
 
 
 ```{r}
 #create data frame
 scores <- as.data.frame(
-  rbind( SARIMA_scores_Jan_2010, SARIMAX_scores_test_temp, ARIMA_Four_for_2010_scores, model5_scores_test)
+  rbind(SNAIVE_scores_2009[2,1:5], SARIMA_scores_Jan_2010, SARIMAX_scores_test_temp, ARIMA_Four_for_2010_scores, model5_scores_test)
   )
-row.names(scores) <- c( "SARIMA(1,2,2)","SARIMAX(3,0,2)_temp", "ARIMA + Fourier", "SARIMA + temp + humidity")
+row.names(scores) <- c("SNAIVE", "SARIMA(1,2,2)","SARIMAX(3,0,2)_temp", "ARIMA + Fourier", "SARIMA + temp + humidity")
+
+scores %>%
+  kbl(digits = 2, caption = "Performance on Test Set for 5 Models")
 
 #choose model with lowest RMSE
 best_model_index <- which.min(scores[,"RMSE"])
